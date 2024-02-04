@@ -1,4 +1,5 @@
 mod mock;
+mod rusqlite;
 
 use std::{
     marker::PhantomData,
@@ -7,6 +8,7 @@ use std::{
 
 pub use chrono::*;
 
+use ::rusqlite::{types::FromSql, ToSql};
 #[cfg(feature = "time_travel")]
 pub use mock::tachyon;
 
@@ -14,7 +16,7 @@ pub use mock::tachyon;
 #[allow(hidden_glob_reexports)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DateTime<Tz: TimeZone> {
-    inner: chrono::DateTime<chrono::Utc>,
+    pub(crate) inner: chrono::DateTime<chrono::Utc>,
     _tz_phanatom: PhantomData<Tz>,
 }
 
@@ -72,6 +74,23 @@ impl Deref for DateTime<Utc> {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+impl ToSql for DateTime<Utc> {
+    fn to_sql(&self) -> ::rusqlite::Result<::rusqlite::types::ToSqlOutput<'_>> {
+        self.inner.to_sql()
+    }
+}
+
+impl FromSql for DateTime<Utc> {
+    fn column_result(
+        value: ::rusqlite::types::ValueRef<'_>,
+    ) -> ::rusqlite::types::FromSqlResult<Self> {
+        Ok(Self {
+            inner: <chrono::DateTime<chrono::Utc> as FromSql>::column_result(value)?,
+            _tz_phanatom: PhantomData,
+        })
     }
 }
 
