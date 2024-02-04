@@ -1,5 +1,4 @@
 mod mock;
-mod rusqlite;
 
 use std::{
     marker::PhantomData,
@@ -8,6 +7,7 @@ use std::{
 
 pub use chrono::*;
 
+#[cfg(feature = "time_travel")]
 use ::rusqlite::{types::FromSql, ToSql};
 #[cfg(feature = "time_travel")]
 pub use mock::tachyon;
@@ -77,12 +77,14 @@ impl Deref for DateTime<Utc> {
     }
 }
 
+#[cfg(feature = "time_travel")]
 impl ToSql for DateTime<Utc> {
     fn to_sql(&self) -> ::rusqlite::Result<::rusqlite::types::ToSqlOutput<'_>> {
         self.inner.to_sql()
     }
 }
 
+#[cfg(feature = "time_travel")]
 impl FromSql for DateTime<Utc> {
     fn column_result(
         value: ::rusqlite::types::ValueRef<'_>,
@@ -134,17 +136,3 @@ impl Offset for Utc {
         FixedOffset::east_opt(0).unwrap()
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::tachyon::now;
-//     use rusqlite::ToSql;
-
-//     use super::*;
-
-//     #[test]
-//     fn test_name() {
-//         let now = DateTime::now();
-//         now.to_sql();
-//     }
-// }
