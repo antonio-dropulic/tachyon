@@ -1,6 +1,7 @@
 mod mock;
 
 use std::{
+    fmt::Display,
     marker::PhantomData,
     ops::{Add, Deref, Sub},
 };
@@ -23,7 +24,7 @@ pub struct DateTime<Tz: TimeZone> {
 #[cfg(feature = "time_travel")]
 impl DateTime<Utc> {
     pub fn now() -> Self {
-        tachyon::now()
+        tachyon::current_time()
     }
 
     pub(crate) fn from_chrono(dt: chrono::DateTime<chrono::Utc>) -> Self {
@@ -41,6 +42,13 @@ impl DateTime<Utc> {
             inner: dt,
             _tz_phanatom: PhantomData,
         })
+    }
+}
+
+#[cfg(feature = "time_travel")]
+impl Display for DateTime<Utc> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
     }
 }
 

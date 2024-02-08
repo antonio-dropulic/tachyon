@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4"
-rusqlite = {version = "0", features = ["chrono"]}
+rusqlite = { version = "0", features = ["chrono"] }
 
 [features]
 time_travel = []

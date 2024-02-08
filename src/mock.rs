@@ -9,10 +9,9 @@ use crate::{DateTime, Utc};
 static MOCK_SYSTEM_TIME: OnceLock<RwLock<DateTime<Utc>>> = OnceLock::new();
 
 pub mod tachyon {
-
     use super::*;
 
-    pub fn now() -> DateTime<Utc> {
+    pub fn current_time() -> DateTime<Utc> {
         let now = chrono::Utc::now();
 
         let time = MOCK_SYSTEM_TIME
@@ -24,15 +23,24 @@ pub mod tachyon {
     }
 
     pub fn advance(time_step: Duration) -> DateTime<Utc> {
+        let now = chrono::Utc::now();
         let mut time = MOCK_SYSTEM_TIME
-            .get_or_init(|| RwLock::new(tachyon::now()))
+            .get_or_init(|| RwLock::new(DateTime::from_chrono(now)))
             .write()
             .unwrap();
 
-        // TODO: need add
         *time = *time + time_step;
 
         *time
+    }
+
+    pub fn set_time(date_time: DateTime<Utc>) {
+        let mut time = MOCK_SYSTEM_TIME
+            .get_or_init(|| RwLock::new(date_time))
+            .write()
+            .unwrap();
+
+        *time = date_time;
     }
 }
 
