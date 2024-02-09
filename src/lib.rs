@@ -23,6 +23,12 @@ pub struct DateTime<Tz: TimeZone> {
 
 #[cfg(feature = "time_travel")]
 impl DateTime<Utc> {
+    /// The Unix Epoch, 1970-01-01 00:00:00 UTC.
+    pub const UNIX_EPOCH: Self = Self {
+        inner: chrono::DateTime::UNIX_EPOCH,
+        _tz_phanatom: PhantomData,
+    };
+
     pub fn now() -> Self {
         tachyon::current_time()
     }
@@ -142,5 +148,17 @@ impl TimeZone for Utc {
 impl Offset for Utc {
     fn fix(&self) -> FixedOffset {
         FixedOffset::east_opt(0).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Utc;
+
+    use super::*;
+
+    #[test]
+    fn test_name() {
+        let dt = chrono::DateTime::UNIX_EPOCH;
     }
 }

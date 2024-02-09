@@ -11,7 +11,7 @@ static MOCK_SYSTEM_TIME: OnceLock<RwLock<DateTime<Utc>>> = OnceLock::new();
 pub mod tachyon {
     use super::*;
 
-    pub fn current_time() -> DateTime<Utc> {
+    pub(crate) fn current_time() -> DateTime<Utc> {
         let now = chrono::Utc::now();
 
         let time = MOCK_SYSTEM_TIME
