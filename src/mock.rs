@@ -21,7 +21,7 @@ pub mod tachyon {
 
         *time
     }
-
+    
     pub fn advance(time_step: Duration) -> DateTime<Utc> {
         let now = chrono::Utc::now();
         let mut time = MOCK_SYSTEM_TIME
@@ -34,6 +34,9 @@ pub mod tachyon {
         *time
     }
 
+    // time-travel makes date-time now hidden from the user
+    // and Utc::now. But there are many ways to construct
+    // those two types. should use Into<DateTime>
     pub fn set_time(date_time: DateTime<Utc>) {
         let mut time = MOCK_SYSTEM_TIME
             .get_or_init(|| RwLock::new(date_time))
