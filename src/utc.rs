@@ -2,10 +2,12 @@
 //! Used to shadow chrono::Utc, more specificaly its Utc::now constructor.
 //! So when using the time travel feature we get the mocked time.
 
+use std::fmt;
+
 use crate::DateTime;
 use chrono::{offset::LocalResult, FixedOffset, NaiveDate, NaiveDateTime, Offset, TimeZone};
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Utc;
 
 impl Utc {
@@ -39,5 +41,17 @@ impl TimeZone for Utc {
 impl Offset for Utc {
     fn fix(&self) -> FixedOffset {
         FixedOffset::east_opt(0).unwrap()
+    }
+}
+
+impl fmt::Debug for Utc {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Z")
+    }
+}
+
+impl fmt::Display for Utc {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "UTC")
     }
 }

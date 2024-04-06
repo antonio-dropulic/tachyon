@@ -11,5 +11,5 @@ rusqlite = { version = "0", features = ["chrono"] }
 
 [features]
 # uncoment for an easier vscode workflow
-# default = ["time_travel"]
+default = ["time_travel"]
 time_travel = []
