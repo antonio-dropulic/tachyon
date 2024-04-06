@@ -1,164 +1,37 @@
-mod mock;
+//! The crate republishes chrono.
+//! With default features the crate does nothing.
+//! With `time_travel` enabled [DateTime<Utc>::now] and [Utc::now] are
+//! replaced with a mocked version. The mock is controled by the functions in the
+//! [tachyon] module.
+//!
+//!
 
-use std::{
-    fmt::Display,
-    marker::PhantomData,
-    ops::{Add, Deref, Sub},
-};
+mod date_time;
+mod mock;
+mod sqlite_ext;
+mod utc;
 
 pub use chrono::*;
 
 #[cfg(feature = "time_travel")]
-use ::rusqlite::{types::FromSql, ToSql};
+pub use date_time::DateTime;
 #[cfg(feature = "time_travel")]
 pub use mock::tachyon;
-
 #[cfg(feature = "time_travel")]
-#[allow(hidden_glob_reexports)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct DateTime<Tz: TimeZone> {
-    pub(crate) inner: chrono::DateTime<chrono::Utc>,
-    _tz_phanatom: PhantomData<Tz>,
-}
+pub use utc::Utc;
 
-#[cfg(feature = "time_travel")]
-impl DateTime<Utc> {
-    /// The Unix Epoch, 1970-01-01 00:00:00 UTC.
-    pub const UNIX_EPOCH: Self = Self {
-        inner: chrono::DateTime::UNIX_EPOCH,
-        _tz_phanatom: PhantomData,
-    };
+// WARN:
+// the issue with this approach is that the runtime behavior with time-travel enabled
+// could, and most likely will, be broken for tests that don't use the feature.
+// This means testing with cargo test --all-features will most likely result in errors.
+// This lib is meant for a specific usecase with featureless apps, where you can
+// run only time-travel tests with time travel feature. I achieve this by feature gating
+// the tests with time travel, and adding a prefix to test module containing those (time_travel)
+// THen i can run cargo test time_travel --features time_travel.
+// Ofc i make sure the tests run sequentially. (this lib does that through cargo/config.toml)
 
-    pub fn now() -> Self {
-        tachyon::current_time()
-    }
-
-    pub(crate) fn from_chrono(dt: chrono::DateTime<chrono::Utc>) -> Self {
-        Self {
-            inner: dt,
-            _tz_phanatom: PhantomData,
-        }
-    }
-
-    #[must_use]
-    pub fn from_timestamp(secs: i64, nsecs: u32) -> Option<Self> {
-        let inner = chrono::DateTime::<chrono::Utc>::from_timestamp(secs, nsecs);
-
-        inner.map(|dt| Self {
-            inner: dt,
-            _tz_phanatom: PhantomData,
-        })
-    }
-}
-
-#[cfg(feature = "time_travel")]
-impl Display for DateTime<Utc> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inner.fmt(f)
-    }
-}
-
-#[cfg(feature = "time_travel")]
-impl Add<Duration> for DateTime<Utc> {
-    type Output = DateTime<Utc>;
-
-    fn add(self, rhs: Duration) -> Self::Output {
-        Self {
-            inner: self.inner + rhs,
-            _tz_phanatom: PhantomData,
-        }
-    }
-}
-
-#[cfg(feature = "time_travel")]
-impl Sub<Duration> for DateTime<Utc> {
-    type Output = DateTime<Utc>;
-
-    fn sub(self, rhs: Duration) -> Self::Output {
-        Self {
-            inner: self.inner - rhs,
-            _tz_phanatom: PhantomData,
-        }
-    }
-}
-
-#[cfg(feature = "time_travel")]
-impl Deref for DateTime<Utc> {
-    type Target = chrono::DateTime<chrono::Utc>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-#[cfg(feature = "time_travel")]
-impl ToSql for DateTime<Utc> {
-    fn to_sql(&self) -> ::rusqlite::Result<::rusqlite::types::ToSqlOutput<'_>> {
-        self.inner.to_sql()
-    }
-}
-
-#[cfg(feature = "time_travel")]
-impl FromSql for DateTime<Utc> {
-    fn column_result(
-        value: ::rusqlite::types::ValueRef<'_>,
-    ) -> ::rusqlite::types::FromSqlResult<Self> {
-        Ok(Self {
-            inner: <chrono::DateTime<chrono::Utc> as FromSql>::column_result(value)?,
-            _tz_phanatom: PhantomData,
-        })
-    }
-}
-
-#[cfg(feature = "time_travel")]
-#[allow(hidden_glob_reexports)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Utc;
-
-#[cfg(feature = "time_travel")]
-impl Utc {
-    pub fn now() -> DateTime<Utc> {
-        DateTime::now()
-    }
-}
-
-#[cfg(feature = "time_travel")]
-impl TimeZone for Utc {
-    type Offset = Utc;
-
-    fn from_offset(_state: &Utc) -> Utc {
-        Utc
-    }
-
-    fn offset_from_local_date(&self, _local: &NaiveDate) -> LocalResult<Utc> {
-        LocalResult::Single(Utc)
-    }
-    fn offset_from_local_datetime(&self, _local: &NaiveDateTime) -> LocalResult<Utc> {
-        LocalResult::Single(Utc)
-    }
-
-    fn offset_from_utc_date(&self, _utc: &NaiveDate) -> Utc {
-        Utc
-    }
-    fn offset_from_utc_datetime(&self, _utc: &NaiveDateTime) -> Utc {
-        Utc
-    }
-}
-#[cfg(feature = "time_travel")]
-impl Offset for Utc {
-    fn fix(&self) -> FixedOffset {
-        FixedOffset::east_opt(0).unwrap()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::Utc;
-
-    use super::*;
-
-    #[test]
-    fn test_name() {
-        let dt = chrono::DateTime::UNIX_EPOCH;
-    }
-}
+// TODO:
+// I like this approach because it allows the app code to not care about time mocking.
+// A sort of on/off global mock.
+// What i really don't like is the gymnastics needed to execute those tests. I would like to
+// figure out a better way to do this.

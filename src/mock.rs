@@ -11,6 +11,7 @@ static MOCK_SYSTEM_TIME: OnceLock<RwLock<DateTime<Utc>>> = OnceLock::new();
 pub mod tachyon {
     use super::*;
 
+    /// Get mocked time
     pub(crate) fn current_time() -> DateTime<Utc> {
         let now = chrono::Utc::now();
 
@@ -21,7 +22,8 @@ pub mod tachyon {
 
         *time
     }
-    
+
+    /// Advance mocked time by the duration given. New time is returned.
     pub fn advance(time_step: Duration) -> DateTime<Utc> {
         let now = chrono::Utc::now();
         let mut time = MOCK_SYSTEM_TIME
@@ -34,10 +36,10 @@ pub mod tachyon {
         *time
     }
 
-    // time-travel makes date-time now hidden from the user
-    // and Utc::now. But there are many ways to construct
-    // those two types. should use Into<DateTime>
-    pub fn set_time(date_time: DateTime<Utc>) {
+    /// Set the mock time
+    pub fn set_time(date_time: impl Into<DateTime<Utc>>) {
+        let date_time = date_time.into();
+
         let mut time = MOCK_SYSTEM_TIME
             .get_or_init(|| RwLock::new(date_time))
             .write()
@@ -54,7 +56,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn smoke() {
+    fn stop_time() {
         let time_step = Duration::minutes(1);
         let now = Utc::now();
         let calculate_advanced = now + time_step;
@@ -64,7 +66,29 @@ mod tests {
         sleep(std::time::Duration::from_millis(10));
 
         let now = Utc::now();
-        assert_eq!(tachyon_advanced, now);
-        assert_eq!(now, calculate_advanced)
+        assert_eq!(tachyon_advanced, now, "arrow of time must be stopped");
+        assert_eq!(now, calculate_advanced, "we travel exactly where we want")
+    }
+
+    #[test]
+    fn travel_to_exact_time() {
+        let fmt = "%Y-%m-%d-%H:%M";
+        let time_str = "1991-05-16-19:50";
+
+        let time: DateTime<Utc> = chrono::NaiveDateTime::parse_from_str(time_str, fmt)
+            .unwrap()
+            .and_local_timezone(Utc)
+            .unwrap()
+            .into();
+
+        tachyon::set_time(time);
+
+        // make sure time is stopped, not only traveled back
+        sleep(std::time::Duration::from_millis(10));
+
+        let now = Utc::now();
+        dbg!(now);
+
+        assert_eq!(now, time)
     }
 }

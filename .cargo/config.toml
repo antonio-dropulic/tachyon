@@ -1,0 +1,5 @@
+[env]
+# time travel tests can interfere with each other
+# any user that explicitly sets time and depends on it
+# should make sure they do so in a sequential context
+RUST_TEST_THREADS = "1"
